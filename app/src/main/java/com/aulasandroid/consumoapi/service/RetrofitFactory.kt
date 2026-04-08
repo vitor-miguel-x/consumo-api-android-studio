@@ -15,4 +15,8 @@ class RetrofitFactory {
     fun getEnderecoService(): EnderecoService {
         return retrofitFactory.create(EnderecoService::class.java)
     }
+
+    fun getEnderecoByCep(): EnderecoService {
+        return retrofitFactory.create(EnderecoService::class.java)
+    }
 }

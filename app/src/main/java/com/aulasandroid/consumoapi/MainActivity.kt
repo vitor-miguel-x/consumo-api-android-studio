@@ -1,5 +1,6 @@
 package com.aulasandroid.consumoapi
 
+import android.R.attr.label
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation.Companion.keyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
@@ -110,11 +112,54 @@ fun CepScreen(modifier: Modifier = Modifier) {
                 // Pesquisa por cep
                 OutlinedTextField(
                     value = cepState,
-                    onValueChange = { cepState = it },
+                    onValueChange = {
+                        cepState = it
+
+                        if (cepState.length == 8) {
+                            val call = RetrofitFactory().getEnderecoService().getEnderecoByCep(cep = cepState)
+
+                            call.enqueue(object : Callback<Endereco> {
+                                override fun onResponse(call: Call<Endereco>, response: Response<Endereco>) {
+                                    if (response.isSuccessful) {
+                                        response.body()?.let { endereco ->
+                                            listaEnderecos = listOf(endereco)
+                                        }
+                                        ufState = listaEnderecos[0].uf
+                                        cidadeState = listaEnderecos[0].cidade
+                                        ruaState = listaEnderecos[0].rua
+                                    } else {
+                                        Log.e("TESTE", "Erro na API: ${response.code()}")
+                                    }
+                                }
+
+                                override fun onFailure(call: Call<Endereco>, t: Throwable) {
+                                    Log.e("TESTE", "Falha na rede: ${t.message}")
+                                }
+                            })
+                        }},
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(text = "Qual CEP está buscando?") },
                     trailingIcon = {
-                        IconButton( onClick = { /* TODO */ } ) {
+                        IconButton( onClick = {
+                            val call = RetrofitFactory().getEnderecoService().getEnderecoByCep( cep = cepState )
+
+                            call.enqueue(object: Callback<Endereco> {
+                                override fun onResponse(
+                                    call: Call<Endereco>,
+                                    response: Response<Endereco>
+                                ) {
+//                                Log.i("TESTE", "${response.body()}")
+                                    listaEnderecos = listOf(response.body()!!)
+                                }
+
+                                override fun onFailure(
+                                    call: Call<Endereco>,
+                                    t: Throwable
+                                ) {
+                                    Log.i("TESTE", "${t.message}")
+                                }
+                            })
+                        } ) {
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = ""
@@ -166,28 +211,31 @@ fun CepScreen(modifier: Modifier = Modifier) {
 
                     // Pesquisa por UF, Cidade e Rua
                     IconButton( onClick = {
-                         val call = RetrofitFactory().getEnderecoService().getEnderecosByUfCidadeRua(
-                            uf = ufState,
-                            cidade = cidadeState,
-                            rua = ruaState
-                        )
 
-                        call.enqueue(object: Callback<List<Endereco>> {
-                            override fun onResponse(
-                                call: Call<List<Endereco>>,
-                                response: Response<List<Endereco>>
-                            ) {
+                            val call = RetrofitFactory().getEnderecoService().getEnderecosByUfCidadeRua(
+                                uf = ufState,
+                                cidade = cidadeState,
+                                rua = ruaState
+                            )
+
+                            call.enqueue(object: Callback<List<Endereco>> {
+                                override fun onResponse(
+                                    call: Call<List<Endereco>>,
+                                    response: Response<List<Endereco>>
+                                ) {
 //                                Log.i("TESTE", "${response.body()}")
-                                listaEnderecos = response.body()!!
-                            }
+                                    listaEnderecos = response.body()!!
+                                }
 
-                            override fun onFailure(
-                                call: Call<List<Endereco>>,
-                                t: Throwable
-                            ) {
-                                Log.i("TESTE", "${t.message}")
-                            }
-                        })
+                                override fun onFailure(
+                                    call: Call<List<Endereco>>,
+                                    t: Throwable
+                                ) {
+                                    Log.i("TESTE", "${t.message}")
+                                }
+                            })
+
+
                     } ) {
                         Icon(
                             imageVector = Icons.Default.Search,
